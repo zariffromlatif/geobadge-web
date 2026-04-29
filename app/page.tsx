@@ -302,7 +302,7 @@ export default function AdminDashboard() {
           <div className="p-6 bg-gray-50 border-b border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-700">{editingId ? `Edit: ${editingId}` : "New Employee"}</h3>
-              <button onClick={() => { setShowAddForm(false); setEditingId(null); }} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+              <button title="Close form" aria-label="Close form" onClick={() => { setShowAddForm(false); setEditingId(null); }} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {!editingId && (
@@ -333,8 +333,8 @@ export default function AdminDashboard() {
                   <td className="px-6 py-4 font-medium text-gray-900 font-mono">{emp.employee_id}</td>
                   <td className="px-6 py-4 text-gray-600">{emp.name}</td>
                   <td className="px-6 py-4 flex items-center gap-3">
-                    <button onClick={() => { setEditingId(emp.employee_id); setFormData({ employee_id: emp.employee_id, name: emp.name, password: "" }); setShowAddForm(false); }} className="text-blue-600 hover:text-blue-800"><Pencil className="w-4 h-4" /></button>
-                    <button onClick={() => handleDeleteEmployee(emp.employee_id)} className="text-red-500 hover:text-red-700"><Trash2 className="w-4 h-4" /></button>
+                    <button title="Edit employee" aria-label="Edit employee" onClick={() => { setEditingId(emp.employee_id); setFormData({ employee_id: emp.employee_id, name: emp.name, password: "" }); setShowAddForm(false); }} className="text-blue-600 hover:text-blue-800"><Pencil className="w-4 h-4" /></button>
+                    <button title="Delete employee" aria-label="Delete employee" onClick={() => handleDeleteEmployee(emp.employee_id)} className="text-red-500 hover:text-red-700"><Trash2 className="w-4 h-4" /></button>
                   </td>
                 </tr>
               ))}
