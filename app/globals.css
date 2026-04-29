@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@media print {
+  /* 1. Hide everything on the page */
+  body * {
+    visibility: hidden;
+  }
+
+  /* 2. Only show the QR section and its children */
+  #printable-qr, #printable-qr * {
+    visibility: visible;
+  }
+
+  /* 3. Position the QR in the center of the PDF page */
+  #printable-qr {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: white !important;
+    border: none !important;
+  }
+
+  /* 4. Force print-only elements inside QR section to show */
+  #printable-qr .hidden {
+    display: block !important;
+  }
+
+  /* Remove any browser-added headers/footers */
+  @page {
+    margin: 0;
+  }
+}
