@@ -146,6 +146,16 @@ export default function AdminDashboard() {
     fetchStats();
   };
 
+  const handleDeleteSite = async (site: Site) => {
+    if (!confirm(`Delete site "${site.name}"? This cannot be undone.`)) return;
+    const { error } = await supabase.from("sites").delete().eq("id", site.id);
+    if (error) {
+      alert("Error: " + error.message);
+      return;
+    }
+    await fetchStats();
+  };
+
   // ─── Utilities ───
   const printQRCodeOnly = () => { window.print(); };
 
@@ -316,7 +326,12 @@ export default function AdminDashboard() {
       </div>
 
       {/* ─── Site Management (controls which site id is encoded in the QR above) ─── */}
-      <SiteList sites={sites} onSelect={(site) => setActiveSite(site)} activeSiteId={activeSite?.id} />
+      <SiteList
+        sites={sites}
+        onSelect={(site) => setActiveSite(site)}
+        onDelete={handleDeleteSite}
+        activeSiteId={activeSite?.id}
+      />
 
       {/* ─── Employee Management ─── */}
       <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

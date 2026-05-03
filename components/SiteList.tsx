@@ -1,4 +1,5 @@
 import React from "react";
+import { Trash2 } from "lucide-react";
 
 export interface Site {
   id: string;
@@ -11,12 +12,14 @@ export interface Site {
 interface SiteListProps {
   sites: Site[];
   onSelect: (site: Site) => void;
+  onDelete: (site: Site) => void;
   activeSiteId?: string;
 }
 
 export const SiteList: React.FC<SiteListProps> = ({
   sites,
   onSelect,
+  onDelete,
   activeSiteId,
 }) => {
   return (
@@ -53,16 +56,29 @@ export const SiteList: React.FC<SiteListProps> = ({
                   {site.radius_meters}m
                 </td>
                 <td className="px-6 py-4">
-                  <button
-                    onClick={() => onSelect(site)}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                      activeSiteId === site.id
-                        ? "bg-green-600 text-white"
-                        : "bg-blue-600 text-white hover:bg-blue-700"
-                    }`}
-                  >
-                    {activeSiteId === site.id ? "Currently Active" : "Show QR"}
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onSelect(site)}
+                      className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                        activeSiteId === site.id
+                          ? "bg-green-600 text-white"
+                          : "bg-blue-600 text-white hover:bg-blue-700"
+                      }`}
+                    >
+                      {activeSiteId === site.id ? "Currently Active" : "Show QR"}
+                    </button>
+                    <button
+                      type="button"
+                      title="Delete site"
+                      aria-label={`Delete site ${site.name}`}
+                      onClick={() => onDelete(site)}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
