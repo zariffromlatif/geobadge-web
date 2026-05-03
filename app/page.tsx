@@ -10,6 +10,9 @@ import type { Site } from "@/components/SiteList";
 
 const SiteMap = dynamic(() => import("@/components/SiteMap"), { ssr: false });
 
+/** Must match `ADMIN_PIN` / default in `app/api/sites/[id]/route.ts` and login gate. */
+const ADMIN_PIN = "admin2026";
+
 // Haversine formula: calculates distance in meters between two GPS coordinates
 function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371e3;
@@ -47,7 +50,7 @@ export default function AdminDashboard() {
   }, []);
 
   const handleLogin = () => {
-    if (adminPin === "admin2026") {
+    if (adminPin === ADMIN_PIN) {
       setIsAdmin(true);
       sessionStorage.setItem("geobadge_admin", "true");
       setAuthError("");
@@ -148,12 +151,43 @@ export default function AdminDashboard() {
 
   const handleDeleteSite = async (site: Site) => {
     if (!confirm(`Delete site "${site.name}"? This cannot be undone.`)) return;
-    const { error } = await supabase.from("sites").delete().eq("id", site.id);
-    if (error) {
-      alert("Error: " + error.message);
-      return;
+
+    const id = String(site.id);
+
+    try {
+      const res = await fetch(`/api/sites/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        headers: { "x-admin-pin": ADMIN_PIN },
+      });
+      const body = (await res.json().catch(() => ({}))) as { error?: string; code?: string };
+
+      if (res.ok) {
+        await fetchStats();
+        return;
+      }
+
+      if (res.status === 503 && body.code === "MISSING_SERVICE_KEY") {
+        const { data, error } = await supabase.from("sites").delete().eq("id", id).select("id");
+        if (error) {
+          alert(
+            `Could not delete: ${error.message}\n\nFix: add SUPABASE_SERVICE_ROLE_KEY to geobadge-web/.env.local, or in Supabase → Authentication → Policies add DELETE on table sites for role anon.`,
+          );
+          return;
+        }
+        if (!data?.length) {
+          alert(
+            "Delete was blocked (no rows removed). Common causes: Row Level Security has no DELETE policy for the anon key, or another table references this site.\n\nFix: add SUPABASE_SERVICE_ROLE_KEY to .env.local and restart `next dev`, or add a DELETE policy on `sites` in Supabase.",
+          );
+          return;
+        }
+        await fetchStats();
+        return;
+      }
+
+      alert(body.error ?? `Delete failed (${res.status})`);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Delete failed");
     }
-    await fetchStats();
   };
 
   // ─── Utilities ───

@@ -72,7 +72,11 @@ export const SiteList: React.FC<SiteListProps> = ({
                       type="button"
                       title="Delete site"
                       aria-label={`Delete site ${site.name}`}
-                      onClick={() => onDelete(site)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onDelete(site);
+                      }}
                       className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
