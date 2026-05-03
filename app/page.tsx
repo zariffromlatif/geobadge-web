@@ -5,6 +5,8 @@ import { supabase } from "../lib/supabase";
 import { Users, MapPin, ShieldAlert, Activity, LogOut, Plus, Pencil, Trash2, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import { QRCodeSVG } from "qrcode.react";
+import { SiteList } from "@/components/SiteList";
+import type { Site } from "@/components/SiteList";
 
 const SiteMap = dynamic(() => import("@/components/SiteMap"), { ssr: false });
 
@@ -28,8 +30,8 @@ export default function AdminDashboard() {
   const [data, setData] = useState({ totalEmployees: 0, onSiteNow: 0, geofenceAlerts: 0, activeSites: 0 });
   const [selectedCoords, setSelectedCoords] = useState({ lat: 23.8103, lng: 90.4125 });
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
-  const [sites, setSites] = useState<any[]>([]);
-  const [activeSite, setActiveSite] = useState<any>(null);
+  const [sites, setSites] = useState<Site[]>([]);
+  const [activeSite, setActiveSite] = useState<Site | null>(null);
 
   // ─── Employee Management State ───
   const [employees, setEmployees] = useState<any[]>([]);
@@ -74,11 +76,21 @@ export default function AdminDashboard() {
 
     const { count: empCount } = await supabase.from("employees").select("*", { count: "exact", head: true });
     const { count: siteCount } = await supabase.from("sites").select("*", { count: "exact", head: true });
-    const { data: siteList } = await supabase.from("sites").select("*");
+    const { data: siteList } = await supabase
+      .from("sites")
+      .select("*")
+      .order("created_at", { ascending: false });
 
     if (siteList && siteList.length > 0) {
-      setSites(siteList);
-      setActiveSite(siteList[0]);
+      const list = siteList as Site[];
+      setSites(list);
+      setActiveSite((prev) => {
+        if (prev && list.some((s) => s.id === prev.id)) return prev;
+        return list[0];
+      });
+    } else {
+      setSites([]);
+      setActiveSite(null);
     }
 
     // On-Site Now
@@ -160,9 +172,6 @@ export default function AdminDashboard() {
     const channel = supabase.channel("realtime-checkins").on("postgres_changes", { event: "INSERT", schema: "public", table: "checkins" }, () => fetchStats()).subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [isAdmin]);
-
-  // ─── Computed ───
-  const qrSiteId = activeSite ? `geobadge_site_${activeSite.name?.replace(/\s+/g, "_").toLowerCase() || activeSite.id}` : "geobadge_site_none";
 
   const stats = [
     { name: "Total Employees", value: data.totalEmployees, icon: Users, color: "text-blue-600" },
@@ -258,19 +267,37 @@ export default function AdminDashboard() {
         <SiteMap onCoordsSelected={(lat: number, lng: number) => setSelectedCoords({ lat, lng })} />
       </div>
 
-      {/* ─── QR + Security Row ─── */}
+      {/* ─── QR + Security Row (QR payload = selected site id from Site Management below) ─── */}
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
           <div className="mb-4">
-            <h2 className="text-lg font-bold text-gray-800">Factory Access Point</h2>
+            <h2 className="text-xl font-bold text-gray-800">Factory Access Point</h2>
             <p className="text-sm text-gray-500">Display this QR at the entrance for employee scans.</p>
-            {activeSite && <p className="text-xs text-blue-600 mt-1 font-mono">Site: {activeSite.name} (r={activeSite.radius_meters}m)</p>}
+            {activeSite ? (
+              <>
+                <p className="text-blue-600 font-medium mt-2">Active Site: {activeSite.name}</p>
+                <p className="text-xs text-gray-500 mt-1">Radius: {activeSite.radius_meters}m</p>
+              </>
+            ) : (
+              <p className="text-amber-600 text-sm mt-2">Save a site on the map above, then pick it in Site Management.</p>
+            )}
           </div>
           <div id="printable-qr" className="bg-gray-50 p-4 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center">
             <h1 className="hidden print:block text-2xl font-bold mb-4 text-gray-900">GeoBadge: {activeSite?.name || "Factory"} Entrance</h1>
-            <QRCodeSVG value={qrSiteId} size={300} level="H" includeMargin={true} />
-            <p className="hidden print:block mt-4 text-sm text-gray-500">Site ID: {qrSiteId} | Generated: {new Date().toLocaleDateString()}</p>
+            {activeSite ? (
+              <div className="p-2 border-4 border-gray-100 rounded-lg bg-white">
+                <QRCodeSVG value={String(activeSite.id)} size={280} level="H" includeMargin={true} />
+              </div>
+            ) : (
+              <div className="w-[280px] h-[280px] flex items-center justify-center text-gray-400 text-sm px-4">No active site</div>
+            )}
+            <p className="hidden print:block mt-4 text-sm text-gray-500">
+              Site ID: {activeSite?.id ?? "—"} | Generated: {new Date().toLocaleDateString()}
+            </p>
           </div>
+          <p className="mt-4 text-xs text-gray-400 font-mono break-all max-w-full px-2">
+            Payload: {activeSite?.id ?? "—"}
+          </p>
           <button onClick={printQRCodeOnly} className="mt-6 text-sm font-semibold text-blue-600 hover:underline">Print Entrance Badge</button>
         </div>
 
@@ -287,6 +314,9 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* ─── Site Management (controls which site id is encoded in the QR above) ─── */}
+      <SiteList sites={sites} onSelect={(site) => setActiveSite(site)} activeSiteId={activeSite?.id} />
 
       {/* ─── Employee Management ─── */}
       <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
